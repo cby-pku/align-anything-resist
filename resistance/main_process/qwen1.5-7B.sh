@@ -16,7 +16,7 @@
 # ==============================================================================
 
 
-MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-0.5B" # model path
+MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-7B" # model path
 TRAIN_TEMPLATE="Resistance" # sft dataset template
 TRAIN_SPLIT="train" # split the sft dataset
 
@@ -35,7 +35,7 @@ for dataset_label in ${DATASETS[@]}; do
     echo 'Train datasets: '$TRAIN_DATASETS
     echo 'Resist datasets: '$RESIST_DATASETS
 
-    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${DATASET_LABEL}_qwen1.5-0.5B"
+    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${DATASET_LABEL}_qwen1.5-7B"
 
 
     # Source the setup script
