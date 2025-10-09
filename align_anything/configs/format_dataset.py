@@ -179,6 +179,18 @@ class BaseFormatter:
         """
         return [], {}
 
+@register_template('Resistance')
+class Resistance(BaseFormatter):
+
+    def format_supervised_sample(
+        self, raw_sample: dict[str, Any]
+    ) -> tuple[list[dict[str, Any]], str]:
+        prompt = raw_sample['prompt']
+        response = raw_sample['response']
+        return [
+            {'role': 'user', 'content': prompt},
+            {'role': 'assistant', 'content': response},
+        ], {}
 
 @register_template('Alpaca')
 class Alpaca(BaseFormatter):
