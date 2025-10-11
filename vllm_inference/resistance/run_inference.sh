@@ -28,7 +28,7 @@ MODEL_NAME="PKU-SafeRLHF_qwen1.5-0.5B_slice_208"
 python resist_data_inference.py \
     --input_file "${INPUT_FILE}" \
     --model_path "${MODEL_PATH}" \
-    --output_root_dir "${OUTPUT_ROOT_DIR}" \
+    --output_dir "${OUTPUT_ROOT_DIR}" \
     --model_name "${MODEL_NAME}" \
     --tensor_parallel_size ${TENSOR_PARALLEL_SIZE} \
     --gpu_memory_utilization ${GPU_MEMORY_UTILIZATION} \
