@@ -35,7 +35,7 @@ train_cfgs:
   # Whether to use gradient checkpointing
   gradient_checkpointing: True
   # Initial learning rate
-  learning_rate: 1.e-5
+  learning_rate: 2.e-5
   # Type of learning rate scheduler
   lr_scheduler_type: constant
   # Ratio of warmup steps for learning rate
