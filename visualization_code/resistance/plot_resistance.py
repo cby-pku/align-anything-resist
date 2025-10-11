@@ -45,8 +45,8 @@ def plot_resistance_loss(model_name, input_root_dir, output_root_dir, max_index=
                 continue
             
             # 构建目录路径
-            dir_forward = os.path.join(input_dir, f"main_{i}_resist{j}")
-            dir_inverse = os.path.join(input_dir, f"main_{j}_resist{i}")
+            dir_forward = os.path.join(input_dir, f"main_{i}_resist_{j}")
+            dir_inverse = os.path.join(input_dir, f"main_{j}_resist_{i}")
             
             # 构建 CSV 文件路径
             csv_forward = os.path.join(dir_forward, "metrics.csv")
@@ -82,7 +82,7 @@ def plot_resistance_loss(model_name, input_root_dir, output_root_dir, max_index=
                     df_forward['train/loss'],
                     color='red',
                     linewidth=2,
-                    label=f'Forward Alignment (main_{i}_resist{j})',
+                    label=f'Forward Alignment (main_{i}_resist_{j})',
                     alpha=0.8
                 )
                 
@@ -92,7 +92,7 @@ def plot_resistance_loss(model_name, input_root_dir, output_root_dir, max_index=
                     df_inverse['train/loss'],
                     color='blue',
                     linewidth=2,
-                    label=f'Inverse Alignment (main_{j}_resist{i})',
+                    label=f'Inverse Alignment (main_{j}_resist_{i})',
                     alpha=0.8
                 )
                 
@@ -136,7 +136,7 @@ def main():
     parser.add_argument(
         '--output_root_dir',
         type=str,
-        default='/mnt/shared-storage-user/zhoujiayi/boyuan/visualization/resistance/results',
+        default='/mnt/shared-storage-user/zhoujiayi/boyuan/visualization_results/resistance',
         help='输出根目录'
     )
     parser.add_argument(
