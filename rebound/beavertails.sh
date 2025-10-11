@@ -63,7 +63,7 @@ for MODEL_NAME_OR_PATH in "${MODEL_LIST[@]}"; do
         for neg_num in "${negative_list[@]}"; do
             FINAL_TRAIN_DATASETS=/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/preference_datasets/beavertails/unsafe/unsafe_${neg_num}.json
             FINAL_OUTPUT_DIR=${OUTPUT_ROOT_DIR}/rebound/${MODEL_NAME}_safe_${pos_num}_unsafe_${neg_num}
-            POSTIVE_MODEL_NAME_OR_PATH=${OUTPUT_ROOT_DIR}/main_process/${MODEL_NAME}_safe_${pos_num}
+            POSTIVE_MODEL_NAME_OR_PATH=${OUTPUT_ROOT_DIR}/main_process/${MODEL_NAME}_safe_${pos_num}/slice_end
             # Source the setup script
             source ./setup.sh
 
