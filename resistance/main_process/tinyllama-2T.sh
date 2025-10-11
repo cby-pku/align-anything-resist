@@ -16,11 +16,12 @@
 # ==============================================================================
 
 
-MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-480k-1T" # model path
+MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-955k-token-2T" # model path
 TRAIN_TEMPLATE="Resistance" # sft dataset template
 TRAIN_SPLIT="train" # split the sft dataset
 
-export WANDB_API_KEY='0e77f7c02e33b86269ca2123964b9fefcf9c1a7a'
+# export WANDB_API_KEY='0e77f7c02e33b86269ca2123964b9fefcf9c1a7a'
+export WANDB_MODE="offline"
 OUTPUT_ROOT_DIR='/mnt/shared-storage-user/zhoujiayi/boyuan/dataset_process/resistance/main_process'
 
 DATASETS=('alpaca' 'PKU-SafeRLHF' 'truthfulqa')
@@ -34,7 +35,7 @@ for dataset_label in ${DATASETS[@]}; do
     echo 'Train datasets: '$TRAIN_DATASETS
     echo 'Resist datasets: '$RESIST_DATASETS
 
-    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${DATASET_LABEL}_tinyllama_1T"
+    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${DATASET_LABEL}_tinyllama-2T"
 
 
     # Source the setup script
