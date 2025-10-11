@@ -21,12 +21,13 @@ MODEL_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistan
 
 
 for LABEL in "${LABELS[@]}"; do
-    MODEL_PATHS=$(ls -d ${MODEL_ROOT_DIR}/${LABEL}_*/slice_* 2>/dev/null)
+    # 先用数组而不是字符串来收集 model paths，使其可正确遍历
+    readarray -t MODEL_PATHS < <(ls -d ${MODEL_ROOT_DIR}/${LABEL}_*/slice_* 2>/dev/null)
     for MODEL_PATH in "${MODEL_PATHS[@]}"; do
 
         INPUT_FILE=$(ls "/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/${LABEL}/resist_"*.json | head -n 1)
 
-        MODEL_NAME=$(basename "$(dirname "${MODEL_PATH}")")$(basename "${MODEL_PATH}")
+        MODEL_NAME="$(basename "$(dirname "${MODEL_PATH}")")$(basename "${MODEL_PATH}")"
         
         OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${LABEL}/"
 
