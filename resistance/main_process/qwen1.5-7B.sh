@@ -22,7 +22,7 @@ TRAIN_SPLIT="train" # split the sft dataset
 
 # export WANDB_API_KEY='0e77f7c02e33b86269ca2123964b9fefcf9c1a7a'
 export WANDB_MODE="offline"
-OUTPUT_ROOT_DIR='/mnt/shared-storage-user/zhoujiayi/boyuan/dataset_process/resistance/main_process'
+OUTPUT_ROOT_DIR='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistance/main_process'
 
 DATASETS=('alpaca' 'PKU-SafeRLHF' 'truthfulqa')
 for dataset_label in ${DATASETS[@]}; do
