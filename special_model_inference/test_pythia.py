@@ -5,7 +5,7 @@ Pythia 模型推理测试脚本
 """
 
 import torch
-from transformers import GPTNeoXForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import argparse
 
 
@@ -75,7 +75,7 @@ def main():
     
     # 加载模型和分词器
     try:
-        model = GPTNeoXForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             args.model_path,
             torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
             device_map='auto' if device == 'cuda' else None,
