@@ -12,7 +12,7 @@ def parse_args():
                         help='输入的 JSON 文件路径')
     parser.add_argument('--model_path', type=str, required=True,
                         help='模型路径')
-    parser.add_argument('--output_root_dir', type=str, required=True,
+    parser.add_argument('--output_dir', type=str, required=True,
                         help='输出结果的根目录')
     parser.add_argument('--model_name', type=str, required=True,
                         help='模型名称')
@@ -42,7 +42,7 @@ def main():
     print("\n配置参数:")
     print(f"  输入文件: {args.input_file}")
     print(f"  模型路径: {args.model_path}")
-    print(f"  输出目录: {args.output_root_dir}")
+    print(f"  输出目录: {args.output_dir}")
     print(f"  张量并行大小: {args.tensor_parallel_size}")
     print(f"  GPU 内存利用率: {args.gpu_memory_utilization}")
     print(f"  采样温度: {args.temperature}")
@@ -52,8 +52,8 @@ def main():
     print()
     
     # 创建输出目录
-    os.makedirs(args.output_root_dir, exist_ok=True)
-    print(f"✓ 输出目录已创建: {args.output_root_dir}\n")
+    os.makedirs(args.output_dir, exist_ok=True)
+    print(f"✓ 输出目录已创建: {args.output_dir}\n")
     
     
     # 读取输入数据
@@ -111,7 +111,7 @@ def main():
                 'model_name': args.model_name,   
                 'model_path': args.model_path,
                 'input_file': args.input_file,
-                'output_root_dir': args.output_root_dir,
+                'output_dir': args.output_dir,
             }
         )
     print(f"✓ 处理了 {len(new_data)} 条结果\n")
@@ -119,7 +119,7 @@ def main():
 
     output_filename = f"{args.model_name}.json"
     
-    output_path = os.path.join(args.output_root_dir, output_filename)
+    output_path = os.path.join(args.output_dir, output_filename)
     print(f"正在保存结果到: {output_path}")
     
     with open(output_path, 'w', encoding='utf-8') as f:
