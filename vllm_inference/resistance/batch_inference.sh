@@ -3,7 +3,8 @@
 # ============================================================================
 # 配置参数（可选，使用默认值）
 # ============================================================================
-TENSOR_PARALLEL_SIZE=8
+TENSOR_PARALLEL_SIZE=4 
+# 适配某些qwen 模型 
 GPU_MEMORY_UTILIZATION=0.95
 SWAP_SPACE=32
 TEMPERATURE=0.1
@@ -36,6 +37,11 @@ for LABEL in "${LABELS[@]}"; do
         echo "Model name: ${MODEL_NAME}"
         echo "Output dir: ${OUTPUT_DIR}"
         echo "Output name: ${MODEL_NAME}"
+
+        if [ -f "${OUTPUT_DIR}/${MODEL_NAME}.json" ]; then
+            echo "Output file already exists: ${OUTPUT_DIR}/${MODEL_NAME}.json"
+            continue
+        fi
 
 
         python resist_data_inference.py \
