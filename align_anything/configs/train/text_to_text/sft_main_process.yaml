@@ -35,7 +35,7 @@ train_cfgs:
   # Whether to use gradient checkpointing
   gradient_checkpointing: True
   # Initial learning rate
-  learning_rate: 1.e-5
+  learning_rate: 2.e-5
   # Type of learning rate scheduler
   lr_scheduler_type: constant
   # Ratio of warmup steps for learning rate
@@ -89,7 +89,7 @@ data_cfgs:
 # The logging configurations
 logger_cfgs:
   # Type of logging to use, choosing from [wandb, tensorboard]
-  log_type: tensorboard
+  log_type: wandb
   # Project name for logging
   log_project: align-anything
   # Run name for logging
@@ -99,7 +99,7 @@ logger_cfgs:
   # The directory to cache the downloaded model
   cache_dir: null
   # The interval of saving models
-  save_total_limit: 2
+  save_total_limit: 6
 # The model configurations
 model_cfgs:
   # Pretrained model name or path
