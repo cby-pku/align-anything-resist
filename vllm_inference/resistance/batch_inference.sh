@@ -18,11 +18,12 @@ OUTPUT_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/resistan
 LABELS=("PKU-SafeRLHF" "alpaca" "truthfulqa")
 MODEL_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistance/main_process/main_process"
 # 这一行的作用是收集所有LABEL变量对应的模型切片（slice）文件夹路径，存到MODEL_PATHS变量
-MODEL_PATHS=$(ls -d ${MODEL_ROOT_DIR}/${LABEL}_*/slice_* 2>/dev/null)
 
 
-for MODEL_PATH in "${MODEL_PATHS[@]}"; do
-    for LABEL in "${LABELS[@]}"; do
+for LABEL in "${LABELS[@]}"; do
+    MODEL_PATHS=$(ls -d ${MODEL_ROOT_DIR}/${LABEL}_*/slice_* 2>/dev/null)
+    for MODEL_PATH in "${MODEL_PATHS[@]}"; do
+
         INPUT_FILE=$(ls "/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/${LABEL}/resist_"*.json | head -n 1)
 
         MODEL_NAME=$(basename "$(dirname "${MODEL_PATH}")")$(basename "${MODEL_PATH}")
