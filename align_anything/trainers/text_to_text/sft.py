@@ -234,13 +234,21 @@ def main():
     current_device = get_current_device()
     torch_set_device(current_device)
 
+    # get custom configs from command line (需要先解析以获取 config_name)
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        '--config_name',
+        type=str,
+        default='sft',
+        help='Name of the config file to use (e.g., sft, sft_resist, sft_main_process)',
+    )
+    args, unparsed_args = parser.parse_known_args()
+    
     # read default configs from the yaml file
-    task = os.path.join('text_to_text', 'sft')
+    task = os.path.join('text_to_text', args.config_name)
     dict_cfgs, ds_cfgs = read_cfgs(mode='train', task=task)
 
-    # get custom configs from command line
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    _, unparsed_args = parser.parse_known_args()
+    # process remaining custom configs from command line
     keys = [k[2:] for k in unparsed_args[1::2]]
     values = list(unparsed_args[2::2])
     unparsed_args = dict(zip(keys, values))

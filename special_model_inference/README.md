@@ -51,6 +51,8 @@ OLMo2, Pythia, MiniCPM 系列模型
      - 1B 表现还可以 
      - " 注意：我们发现使用Huggingface生成质量略差于vLLM，因此推荐使用vLLM进行测试。我们正在排查原因。"
      - 主要是中文模型 
+     - trust_remote_mode = True , minicpm 系列的模型都有自己的pretrained 写法 
+     - bf16 精度更准 
 [x] align-anything 训练框架是否支持
 
 进阶测试：
