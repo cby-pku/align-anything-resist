@@ -172,7 +172,7 @@ def load_pretrained_models(  # pylint: disable=too-many-arguments
     dtype: torch.dtype | str | None = torch.bfloat16,
     *,
     cache_dir: str | os.PathLike | None = None,
-    trust_remote_code: bool = False,
+    trust_remote_code: bool = True,
     auto_model_args: tuple[Any, ...] = (),
     auto_model_kwargs: dict[str, Any] | None = None,
     auto_tokenizer_args: tuple[Any, ...] = (),
