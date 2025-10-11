@@ -27,7 +27,7 @@ for LABEL in "${LABELS[@]}"; do
 
         INPUT_FILE=$(ls "/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/${LABEL}/resist_"*.json | head -n 1)
 
-        MODEL_NAME="$(basename "$(dirname "${MODEL_PATH}")")$(basename "${MODEL_PATH}")"
+        MODEL_NAME="$(basename "$(dirname "${MODEL_PATH}")")_$(basename "${MODEL_PATH}")"
         
         OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${LABEL}/"
 
