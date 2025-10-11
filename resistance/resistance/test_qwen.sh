@@ -24,7 +24,7 @@ export WANDB_MODE="offline"
 # Label 里面的可以循环上
 MODEL_ROOT_NAME='alpaca_qwen1.5-0.5B' 
 LABEL='alpaca'
-INPUT_MODEL_ROOT_PATH='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistance/main_process/main_process/'${MODEL_ROOT_NAME}
+INPUT_MODEL_ROOT_PATH='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistance/main_process/main_process/'
 TRAIN_DATA_ROOT_PATH='/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/resistance'/${LABEL}
 SLICE_LIST=('slice_208' 'slice_416' 'slice_624' 'slice_832' 'slice_1040' 'slice_1248' 'slice_end')
 TRAIN_SLICE_LIST=("${SLICE_LIST[@]}")
