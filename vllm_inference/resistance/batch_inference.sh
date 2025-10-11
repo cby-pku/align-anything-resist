@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # ============================================================================
+# 环境变量设置（解决 flex_attention 兼容性问题）
+# ============================================================================
+
+# ============================================================================
 # 配置参数（可选，使用默认值）
 # ============================================================================
 TENSOR_PARALLEL_SIZE=4 
@@ -29,6 +33,10 @@ for LABEL in "${LABELS[@]}"; do
         INPUT_FILE=$(ls "/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/${LABEL}/resist_"*.json | head -n 1)
 
         MODEL_NAME="$(basename "$(dirname "${MODEL_PATH}")")_$(basename "${MODEL_PATH}")"
+        if [[ "${MODEL_NAME}" == *"pythia"* ]]; then
+            export VLLM_ATTENTION_BACKEND=XFORMERS
+            export VLLM_USE_V1=0
+        fi
         
         OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${LABEL}/"
 
