@@ -192,6 +192,21 @@ class Resistance(BaseFormatter):
             {'role': 'assistant', 'content': response},
         ], {}
 
+@register_template('Rebound')
+class Rebound(BaseFormatter):
+
+    def format_supervised_sample(
+        self, raw_sample: dict[str, Any]
+    ) -> tuple[list[dict[str, Any]], str]:
+        prompt = raw_sample.get('instruction', raw_sample.get('prompt', raw_sample.get('question', None)))
+        response = raw_sample.get('output', raw_sample.get('response', raw_sample.get('answer', None)))
+        if prompt is None or response is None:
+            raise ValueError('Prompt or response is not found in the raw_sample')
+        return [
+            {'role': 'user', 'content': prompt},
+            {'role': 'assistant', 'content': response},
+        ], {}
+
 @register_template('Alpaca')
 class Alpaca(BaseFormatter):
 
