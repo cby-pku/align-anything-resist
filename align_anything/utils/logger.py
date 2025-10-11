@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import csv
 import logging
 import os
 import pathlib
@@ -67,6 +68,9 @@ class Logger:
     _instance: ClassVar[Logger] = None  # singleton pattern
     writer: tensorboard.SummaryWriter | None
     wandb: wandb.sdk.wandb_run.Run | None
+    csv_file: TextIO | None
+    csv_writer: csv.DictWriter | None
+    csv_fieldnames: list[str] | None
 
     def __new__(
         cls,
@@ -94,6 +98,9 @@ class Logger:
             self.log_run_name = log_run_name
             self.writer = None
             self.wandb = None
+            self.csv_file = None
+            self.csv_writer = None
+            self.csv_fieldnames = None
 
             if is_main_process():
                 if self.log_type == 'tensorboard':
@@ -118,6 +125,12 @@ class Logger:
                                 (f'{key}={value}' for key, value in sorted(os.environ.items())),
                             ),
                         )
+                    
+                    # Initialize CSV file for logging metrics
+                    csv_path = log_dir / 'metrics.csv'
+                    self.csv_file = open(csv_path, 'w', encoding='utf-8', newline='')
+                    self.csv_fieldnames = []
+                    self.csv_writer = None  # Will be initialized on first log
 
             atexit.register(self.close)
         else:
@@ -136,6 +149,59 @@ class Logger:
                 self.writer.add_scalar(key, value, global_step=step)
         elif self.log_type == 'wandb':
             self.wandb.log(metrics, step=step)
+        
+        # Log to CSV file
+        if self.csv_file is not None:
+            # Add 'step' to metrics for CSV logging
+            csv_row = {'step': step, **metrics}
+            
+            # Check if we need to update fieldnames (new metrics appeared)
+            current_keys = set(csv_row.keys())
+            if self.csv_writer is None or current_keys != set(self.csv_fieldnames):
+                # Update fieldnames to include all keys seen so far
+                new_fieldnames = sorted(current_keys | set(self.csv_fieldnames or []))
+                
+                if self.csv_writer is None:
+                    # First time writing - write header
+                    self.csv_fieldnames = new_fieldnames
+                    self.csv_writer = csv.DictWriter(
+                        self.csv_file, 
+                        fieldnames=self.csv_fieldnames,
+                        extrasaction='ignore'
+                    )
+                    self.csv_writer.writeheader()
+                    self.csv_file.flush()
+                else:
+                    # New fields detected - need to rewrite file with new header
+                    if new_fieldnames != self.csv_fieldnames:
+                        # Close current file
+                        self.csv_file.close()
+                        
+                        # Read existing data
+                        log_dir = pathlib.Path(self.log_dir).expanduser().absolute()
+                        csv_path = log_dir / 'metrics.csv'
+                        existing_data = []
+                        with open(csv_path, 'r', encoding='utf-8') as f:
+                            reader = csv.DictReader(f)
+                            existing_data = list(reader)
+                        
+                        # Reopen file and write with new fieldnames
+                        self.csv_file = open(csv_path, 'w', encoding='utf-8', newline='')
+                        self.csv_fieldnames = new_fieldnames
+                        self.csv_writer = csv.DictWriter(
+                            self.csv_file,
+                            fieldnames=self.csv_fieldnames,
+                            extrasaction='ignore'
+                        )
+                        self.csv_writer.writeheader()
+                        # Write back existing data
+                        for row in existing_data:
+                            self.csv_writer.writerow(row)
+                        self.csv_file.flush()
+            
+            # Write the current row
+            self.csv_writer.writerow(csv_row)
+            self.csv_file.flush()
 
     @rank_zero_only
     def close(self) -> None:
@@ -144,6 +210,10 @@ class Logger:
             self.writer.close()
         elif self.log_type == 'wandb' and self.wandb:
             self.wandb.finish()
+        
+        # Close CSV file
+        if self.csv_file is not None:
+            self.csv_file.close()
 
     @staticmethod
     @tqdm.external_write_mode()
