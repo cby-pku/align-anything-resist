@@ -104,14 +104,14 @@ def plot_resistance_loss(model_name, input_root_dir, output_root_dir, max_index=
                 plt.grid(True, alpha=0.3, linestyle='--')
                 
                 # 保存图形
-                output_file = os.path.join(output_dir, f"loss_{i}_{j}.pdf")
+                output_file = os.path.join(output_dir, f"loss_{i}_{j}.png")
                 plt.savefig(output_file, format='pdf', bbox_inches='tight', dpi=300)
                 plt.close()
                 
-                print(f"✓ 已生成: loss_{i}_{j}.pdf")
+                print(f"✓ 已生成: loss_{i}_{j}.png")
                 
             except Exception as e:
-                print(f"错误: 处理 loss_{i}_{j}.pdf 时出错 - {e}")
+                print(f"错误: 处理 loss_{i}_{j}.png 时出错 - {e}")
                 plt.close()
                 continue
     
