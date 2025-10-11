@@ -41,3 +41,20 @@ OLMo2, Pythia, MiniCPM 系列模型
 [] 是否有 Rebound 的实验潜质
 [] 是否有 Resistance 的实验效果
 [] 是否有 Rebound 的实验效果
+
+
+# MiniCPM
+
+基础测试：
+[0] 测试是否有正常的 inference 的代码, 正常 inference 代码会有 DynamicCache 的报错, 但是 vllm 对这个问题处理好了 
+[x] vllm 是否支持 (用的OLMo2ForCausalLM的框架)
+     - 1B 表现还可以 
+     - " 注意：我们发现使用Huggingface生成质量略差于vLLM，因此推荐使用vLLM进行测试。我们正在排查原因。"
+     - 主要是中文模型 
+[x] align-anything 训练框架是否支持
+
+进阶测试：
+[] 是否有 Resistance 的实验潜质
+[] 是否有 Rebound 的实验潜质
+[] 是否有 Resistance 的实验效果
+[] 是否有 Rebound 的实验效果
