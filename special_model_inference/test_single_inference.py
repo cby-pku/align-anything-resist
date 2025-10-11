@@ -79,12 +79,13 @@ def main():
             args.model_path,
             torch_dtype=torch.float16 if device == 'cuda' else torch.float32,
             device_map='auto' if device == 'cuda' else None,
+            trust_remote_code=True,
         )
         
         if device == 'cpu':
             model = model.to(device)
         
-        tokenizer = AutoTokenizer.from_pretrained(args.model_path)
+        tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
         
         # 设置 pad_token 如果不存在
         if tokenizer.pad_token is None:
