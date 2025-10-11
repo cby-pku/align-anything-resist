@@ -23,7 +23,7 @@ export CUDA_VISIBLE_DEVICES=4,5,6,7 # 控制步数，延长到2倍的步数
  
 # ----- 需要更改 ---- 
 # Label 里面的可以循环上
-MODEL_ROOT_NAME='alpaca_tinyllama_2T' 
+MODEL_ROOT_NAME='alpaca_tinyllama-2T' 
 LABEL='alpaca'
 INPUT_MODEL_ROOT_PATH='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resistance/main_process/main_process/'
 TRAIN_DATA_ROOT_PATH='/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/resistance'/${LABEL}
