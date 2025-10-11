@@ -60,6 +60,7 @@ for i in "${!SLICE_LIST[@]}"; do
         deepspeed \
             --master_port ${MASTER_PORT} \
             --module align_anything.trainers.text_to_text.sft \
+            --config_name sft_resist \
             --model_name_or_path ${MODEL_NAME_OR_PATH} \
             --train_template ${TRAIN_TEMPLATE} \
             --train_datasets ${TRAIN_DATASETS} \
