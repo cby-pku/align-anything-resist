@@ -1,7 +1,7 @@
 # ==============================================================================
 # 1. 基本配置 (基本不需要修改)
 # ==============================================================================
-MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/jiayi/align-anything-main/outputs/exp3-beavertails-qwen2-5-inst-rm/pos/slice_1155" # 模型路径
+MODEL_NAME_OR_PATH="/mnt/shared-storage-user/zhoujiayi/jiayi/align-anything-main/outputs/exp3-beavertails-qwen2-5-inst-rm/pos/slice_end" # 模型路径
 TRAIN_TEMPLATE="PKUSafeRLHF_Eval" # 数据集模板
 TRAIN_SPLIT="train" # 数据集拆分
 

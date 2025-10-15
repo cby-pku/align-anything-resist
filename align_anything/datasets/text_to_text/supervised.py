@@ -72,10 +72,14 @@ class SupervisedDataset(Dataset):
             import json
 
             self.raw_data = [json.loads(l) for l in open(path).readlines()]
+            if size:
+                self.raw_data = self.raw_data[:int(size)]
         elif path.endswith('.json'):
             import json
 
             self.raw_data = json.load(open(path))
+            if size:
+                self.raw_data = self.raw_data[:int(size)]
         else:
             self.raw_data = load_dataset(
                 path,
@@ -85,8 +89,8 @@ class SupervisedDataset(Dataset):
                 *optional_args,
                 trust_remote_code=True,
             )
-        if size:
-            self.raw_data = self.raw_data.select(range(int(size)))
+            if size:
+                self.raw_data = self.raw_data.select(range(int(size)))
         self.template = template
 
     def preprocess(self, raw_sample: dict[str, Any]) -> SupervisedSample:
