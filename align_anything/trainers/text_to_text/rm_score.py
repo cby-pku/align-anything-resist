@@ -28,7 +28,7 @@ from tqdm import tqdm
 from transformers.integrations.deepspeed import HfDeepSpeedConfig
 
 from align_anything.datasets.text_to_text.supervised import SupervisedDataset
-from align_anything.models.pretrained_model_with_value import load_pretrained_model_with_value_head
+from align_anything.models.pretrained_model import load_pretrained_models
 from align_anything.trainers.base import SupervisedTrainerBase
 from align_anything.utils.device_utils import torch_set_device
 from align_anything.utils.multi_process import get_current_device, is_main_process
@@ -75,12 +75,13 @@ class RMScore(SupervisedTrainerBase):
         """Initialize model and tokenizer."""
         if self.ds_train_cfgs is not None and self.ds_train_cfgs['zero_optimization']['stage'] == 3:
             self.dstchf = HfDeepSpeedConfig(self.ds_train_cfgs)
-        self.model, self.tokenizer, self.processor = load_pretrained_model_with_value_head(
+        self.model, self.tokenizer, self.processor = load_pretrained_models(
             self.cfgs.model_cfgs.model_name_or_path,
             model_max_length=self.cfgs.model_cfgs.model_max_length,
             padding_side='right',
             trust_remote_code=self.cfgs.model_cfgs.trust_remote_code,
-            modality='text',
+            is_reward_model=True,
+            processor_kwargs=self.cfgs.train_cfgs.processor_kwargs,
         )
 
     def init_datasets(self) -> None:
@@ -126,20 +127,17 @@ class RMScore(SupervisedTrainerBase):
             )
 
             prompt, response = split_prompt_response(
-                decoded_prompt_and_response, split_token=self.eval_template.split_token
+                decoded_prompt_and_response, split_token='\nassistant\n'
             )
-            prompts.append(prompt)
-            responses.append(response)
+            prompts.append(prompt[0].strip())
+            responses.append(response[0].strip())
 
         data_with_score = []
         for prompt, response, reward in zip(prompts, responses, rewards):
             data_with_score.append(
                 {
-                    'prompt': prompt[0]
-                    .replace(self.eval_template.system_prompt, '')
-                    .replace(self.eval_template.user_prompt.replace('{input} ', ''), '')
-                    .strip(),
-                    'response': response[0],
+                    'prompt': prompt,
+                    'response': response,
                     'score': reward.item(),
                 }
             )
@@ -164,8 +162,11 @@ class RMScore(SupervisedTrainerBase):
                     final_data_with_score.extend(json.load(f))
                 os.remove(output_name)
             os.rmdir(os.path.join(self.cfgs.logger_cfgs.output_dir, 'tmp'))
+            # Extract filename and remove extension (.json or .jsonl)
+            input_filename = os.path.basename(self.cfgs.data_cfgs.eval_datasets)
+            save_name = os.path.splitext(input_filename)[0]
             output_name = os.path.join(
-                self.cfgs.logger_cfgs.output_dir, 'eval_data_with_score.json'
+                self.cfgs.logger_cfgs.output_dir, f'{save_name}.json'
             )
             with open(output_name, 'w') as f:
                 json.dump(final_data_with_score, f, indent=4)

@@ -221,6 +221,20 @@ class Alpaca(BaseFormatter):
         ], {}
 
 
+@register_template('PKUSafeRLHF_Eval')
+class PKUSafeRLHF_Eval(BaseFormatter):
+
+    def format_supervised_sample(
+        self, raw_sample: dict[str, Any]
+    ) -> tuple[list[dict[str, Any]], str]:
+        prompt = raw_sample['prompt']
+        response = raw_sample['response']
+        return [
+            {'role': 'user', 'content': prompt},
+            {'role': 'assistant', 'content': response},
+        ], {}
+
+
 @register_template('PKUSafeRLHF')
 class PKUSafeRLHF(BaseFormatter):
     system_prompt: str = ''
