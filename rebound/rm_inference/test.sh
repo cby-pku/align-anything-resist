@@ -28,12 +28,11 @@ MODEL_NAME_LIST=(
 # ==============================================================================
 # For wandb online logging
 
-# Source the setup script
-source ./setup.sh
-
 for MODEL_NAME in ${MODEL_NAME_LIST[@]}; do
 # 遍历母目录下的所有 .json 和 .jsonl 文件
-for TRAIN_DATASETS in ${PARENT_DATA_DIR}/${MODEL_NAME}/*.json; do
+    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${MODEL_NAME}"
+    source ./setup.sh
+    for TRAIN_DATASETS in ${PARENT_DATA_DIR}/${MODEL_NAME}/*.json; do
     # 跳过不存在的文件模式（避免 glob 未匹配时的错误）
     [ -f "$TRAIN_DATASETS" ] || continue
 
@@ -45,7 +44,7 @@ for TRAIN_DATASETS in ${PARENT_DATA_DIR}/${MODEL_NAME}/*.json; do
          --eval_template ${TRAIN_TEMPLATE} \
          --eval_datasets "${TRAIN_DATASETS}" \
          --eval_split ${TRAIN_SPLIT} \
-         --output_dir "${OUTPUT_ROOT_DIR}/${MODEL_NAME}" \
+         --output_dir "${OUTPUT_DIR}" \
          --eval_size 100 \
          --epochs 1
     done
