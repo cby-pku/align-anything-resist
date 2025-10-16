@@ -24,26 +24,23 @@ TRAIN_SPLIT="train" # split the sft dataset
 export WANDB_MODE="offline"
 OUTPUT_ROOT_DIR='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/main_process'
 
-DATASETS=('alpaca' 'PKU-SafeRLHF' 'truthfulqa')
-for dataset_label in ${DATASETS[@]}; do
-    DATASET_LABEL=$dataset_label
 
-    TRAIN_DATASETS=$(ls /mnt/shared-storage-user/zhoujiayi/boyuan/datasets/${DATASET_LABEL}/train_*.json | head -n 1)
+TRAIN_DATASETS=../dataset/raw_data/safe_qa_sample_25283.json
 
-    OUTPUT_DIR="${OUTPUT_ROOT_DIR}/${DATASET_LABEL}_qwen1.5-0.5B"
+OUTPUT_DIR="${OUTPUT_ROOT_DIR}/safe_llama3.1-8b"
 
 
-    # Source the setup script
-    source ./setup.sh
+# Source the setup script
+source ./setup.sh
 
-    # Execute deepspeed command
-    deepspeed \
-        --master_port ${MASTER_PORT} \
-        --module align_anything.trainers.text_to_text.sft_main_process \
-        --model_name_or_path ${MODEL_NAME_OR_PATH} \
-        --train_template ${TRAIN_TEMPLATE} \
-        --train_datasets ${TRAIN_DATASETS} \
-        --train_split ${TRAIN_SPLIT} \
-        --output_dir ${OUTPUT_DIR} \
-        --epochs 1 
-done
+# Execute deepspeed command
+deepspeed \
+    --master_port ${MASTER_PORT} \
+    --module align_anything.trainers.text_to_text.sft_main_process \
+    --model_name_or_path ${MODEL_NAME_OR_PATH} \
+    --train_template ${TRAIN_TEMPLATE} \
+    --train_datasets ${TRAIN_DATASETS} \
+    --train_split ${TRAIN_SPLIT} \
+    --output_dir ${OUTPUT_DIR} \
+    --epochs 1 
+
