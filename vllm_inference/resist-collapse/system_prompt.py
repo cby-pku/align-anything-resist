@@ -1,4 +1,4 @@
-LLAMA2_SYSTEM_PROMPT = f"""<s>[INST] <<SYS>>
+LLAMA2_SYSTEM_PROMPT = """<s>[INST] <<SYS>>
 You are a helpful assistant.
 <</SYS>>
 

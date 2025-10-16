@@ -4,10 +4,11 @@ import os
 import argparse
 from tqdm import tqdm
 from datetime import datetime
+from transformers import AutoTokenizer
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='使用 VLLM 进行模型推理')
+    parser = argparse.ArgumentParser(description='使用 VLLM 进行模型推理（手动应用 chat template）')
     parser.add_argument('--input_file', type=str, required=True,
                         help='输入的 JSON 文件路径')
     parser.add_argument('--model_path', type=str, required=True,
@@ -28,6 +29,9 @@ def parse_args():
                         help='Top-p 采样参数（默认：0.95）')
     parser.add_argument('--max_tokens', type=int, default=None,
                         help='最大生成 token 数（可选）')
+    parser.add_argument('--system_prompt', type=str, 
+                        default="You are a helpful assistant.",
+                        help='系统提示词（默认：You are a helpful assistant.）')
     return parser.parse_args()
 
 
@@ -47,6 +51,7 @@ def main():
     print(f"  GPU 内存利用率: {args.gpu_memory_utilization}")
     print(f"  采样温度: {args.temperature}")
     print(f"  Top-p: {args.top_p}")
+    print(f"  系统提示: {args.system_prompt}")
     if args.max_tokens:
         print(f"  最大 token 数: {args.max_tokens}")
     print()
@@ -55,6 +60,10 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     print(f"✓ 输出目录已创建: {args.output_dir}\n")
     
+    # 加载 tokenizer 以使用 chat template
+    print("正在加载 tokenizer...")
+    tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
+    print("✓ Tokenizer 加载完成\n")
     
     # 读取输入数据
     print(f"正在读取输入文件: {args.input_file}")
@@ -73,17 +82,28 @@ def main():
     )
     print("✓ 模型加载完成\n")
     
-    # 准备prompts（使用消息格式，vLLM 会自动应用 chat_template）
-    print("正在准备 prompts...")
+    # 准备prompts（手动使用 tokenizer 应用 chat template）
+    print("正在准备 prompts（应用 chat template）...")
     prompts = []
     for item in tqdm(data, desc="提取 prompts"):
-        # 使用消息格式，vLLM 会自动从模型目录读取并应用 chat_template.jinja
         messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": args.system_prompt},
             {"role": "user", "content": item['prompt']}
         ]
-        prompts.append(messages)
+        # 手动应用 chat template
+        formatted_prompt = tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+        prompts.append(formatted_prompt)
     print(f"✓ 准备了 {len(prompts)} 个 prompts\n")
+    
+    # 打印第一个 prompt 示例
+    print("第一个 prompt 示例（应用 chat template 后）:")
+    print("-" * 80)
+    print(prompts[0][:500] + "..." if len(prompts[0]) > 500 else prompts[0])
+    print("-" * 80 + "\n")
     
     # 设置采样参数
     sampling_params_dict = {
@@ -144,3 +164,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
