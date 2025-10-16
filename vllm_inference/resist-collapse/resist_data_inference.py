@@ -4,6 +4,7 @@ import os
 import argparse
 from tqdm import tqdm
 from datetime import datetime
+from system_prompt import LLAMA2_SYSTEM_PROMPT
 
 
 def parse_args():
@@ -77,7 +78,7 @@ def main():
     print("正在准备 prompts...")
     prompts = []
     for item in tqdm(data, desc="提取 prompts"):
-        prompts.append(item['prompt'])
+        prompts.append(LLAMA2_SYSTEM_PROMPT.format(prompt=item['prompt']))
     print(f"✓ 准备了 {len(prompts)} 个 prompts\n")
     
     # 设置采样参数
