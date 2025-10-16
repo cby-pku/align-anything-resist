@@ -260,7 +260,6 @@ $RECYCLE.BIN/
 *.bzip
 *.bzip2
 *.bz2
-*.xz
 *.lzma
 *.cab
 *.xar
