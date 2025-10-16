@@ -25,7 +25,7 @@ export WANDB_MODE="offline"
 OUTPUT_ROOT_DIR='/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/main_process'
 
 
-TRAIN_DATASETS=../dataset/raw_data/safe_qa_sample_25283.json
+TRAIN_DATASETS="/mnt/shared-storage-user/zhoujiayi/boyuan/align-anything-resist/resist-collapse/dataset/raw_data/safe_qa_sample_25283.json"
 
 OUTPUT_DIR="${OUTPUT_ROOT_DIR}/safe_llama3.1-8b"
 
@@ -36,7 +36,8 @@ source ./setup.sh
 # Execute deepspeed command
 deepspeed \
     --master_port ${MASTER_PORT} \
-    --module align_anything.trainers.text_to_text.sft_main_process \
+    --module align_anything.trainers.text_to_text.sft\
+    --config_name sft_main_process \
     --model_name_or_path ${MODEL_NAME_OR_PATH} \
     --train_template ${TRAIN_TEMPLATE} \
     --train_datasets ${TRAIN_DATASETS} \
