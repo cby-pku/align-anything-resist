@@ -73,16 +73,32 @@ def main():
     )
     print("✓ 模型加载完成\n")
     
+    # 获取 tokenizer（用于应用 chat template 到消息上）
+    tokenizer = llm.get_tokenizer()
+    has_chat_template = getattr(tokenizer, "chat_template", None) not in (None, "")
+    
     # 准备prompts（使用消息格式，vLLM 会自动应用 chat_template）
     print("正在准备 prompts...")
     prompts = []
     for item in tqdm(data, desc="提取 prompts"):
-        # 使用消息格式，vLLM 会自动从模型目录读取并应用 chat_template.jinja
+        # 构造消息
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": item['prompt']}
         ]
-        prompts.append(messages)
+        # 将消息通过 chat template 转为字符串；如无模板则采用简易回退模板
+        if has_chat_template:
+            prompt_text = tokenizer.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                tokenize=False,
+            )
+        else:
+            print("使用默认模板")
+            system_content = messages[0]["content"] if messages and messages[0].get("role") == "system" else ""
+            user_content = messages[-1]["content"]
+            prompt_text = f"System: {system_content}\nUser: {user_content}\nAssistant:"
+        prompts.append(prompt_text)
     print(f"✓ 准备了 {len(prompts)} 个 prompts\n")
     
     # 设置采样参数
