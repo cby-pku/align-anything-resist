@@ -34,7 +34,7 @@ dependencies = [
     "torch",
     "torchvision",
     "torchaudio",
-    "transformers >= 4.50.0",
+    "transformers",
     "datasets",
     "tokenizers >= 0.13.3",
     "accelerate",

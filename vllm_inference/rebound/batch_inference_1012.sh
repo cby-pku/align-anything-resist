@@ -13,7 +13,7 @@ GPU_MEMORY_UTILIZATION=0.95
 SWAP_SPACE=32
 TEMPERATURE=0.1
 TOP_P=0.95
-OUTPUT_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/rebound"
+OUTPUT_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/rebound/PKU-SafeRLHF"
 INPUT_FILE="/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/PKU-SafeRLHF/test.json"
 
 
