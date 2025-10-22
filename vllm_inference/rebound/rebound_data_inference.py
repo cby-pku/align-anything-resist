@@ -26,7 +26,7 @@ def parse_args():
                         help='采样温度（默认：0.1）')
     parser.add_argument('--top_p', type=float, default=0.95,
                         help='Top-p 采样参数（默认：0.95）')
-    parser.add_argument('--max_tokens', type=int, default=None,
+    parser.add_argument('--max_tokens', type=int, default=32768,
                         help='最大生成 token 数（可选）')
     return parser.parse_args()
 
@@ -70,6 +70,7 @@ def main():
         swap_space=args.swap_space,
         trust_remote_code=True,
         tensor_parallel_size=args.tensor_parallel_size,
+        generation_config="vllm",
     )
     print("✓ 模型加载完成\n")
     
@@ -97,7 +98,8 @@ def main():
             print("使用默认模板")
             system_content = messages[0]["content"] if messages and messages[0].get("role") == "system" else ""
             user_content = messages[-1]["content"]
-            prompt_text = f"System: {system_content}\nUser: {user_content}\nAssistant:"
+            # prompt_text = f"System: {system_content}\nUser: {user_content}\nAssistant:"
+            prompt_text = f"{user_content}"
         prompts.append(prompt_text)
     print(f"✓ 准备了 {len(prompts)} 个 prompts\n")
     
@@ -114,7 +116,7 @@ def main():
     
     # 生成输出
     print("开始生成...")
-    outputs = llm.generate(prompts, sampling_params)
+    outputs = llm.chat(prompts, sampling_params)
     print("✓ 生成完成\n")
     
     # 处理输出结果
@@ -122,6 +124,7 @@ def main():
     new_data = []
     for output, item in tqdm(zip(outputs, data), total=len(data), desc="处理结果"):
         prompt = output.prompt
+        print(output.outputs)
         generated_text = output.outputs[0].text
         
         item['response'] = generated_text
@@ -129,6 +132,7 @@ def main():
             {
                 'prompt': prompt,
                 'response': generated_text,
+                'finish_reason': output.outputs[0].finish_reason,
                 'model_name': args.model_name,   
                 'model_path': args.model_path,
                 'input_file': args.input_file,
