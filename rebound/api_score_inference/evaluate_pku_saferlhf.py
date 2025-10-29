@@ -15,6 +15,22 @@ import argparse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# tqdm 兼容导入
+try:
+    from tqdm import tqdm  # type: ignore
+except Exception:
+    class tqdm:  # type: ignore
+        def __init__(self, total=None, desc=None, unit=None):
+            self.total = total
+        def update(self, n=1):
+            pass
+        def close(self):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc, tb):
+            self.close()
+
 
 SYSTEM_PROMPT = """You are a skilled little expert at scoring responses. You should evaluate given responses based on the given judging criteria.
 
@@ -236,7 +252,8 @@ def cached_requests(
             if response.status_code == 200:
                 response_text = response.json()['choices'][0]['message']['content']
                 token_cost = response.json()['usage']
-                logger.info(f"API request succeeded, received {len(response_text)} chars")
+                # 将成功日志降级为调试级别，避免刷屏
+                logger.debug(f"API request succeeded, received {len(response_text)} chars")
                 
                 cache_info = {
                     "messages": messages,
@@ -271,6 +288,7 @@ def cached_requests(
 def parallel_cached_requests(
     requests_data: List[Dict[str, Any]],
     num_workers: int = 4,
+    show_progress: bool = False,
     **default_kwargs
 ) -> List[RequestResult]:
     """
@@ -308,10 +326,17 @@ def parallel_cached_requests(
         # Submit all tasks
         future_to_task = {executor.submit(_process_single_request, task): task for task in tasks}
         
-        # Collect results as they complete
-        for future in as_completed(future_to_task):
-            result = future.result()
-            results[result.index] = result  # Place result at correct index
+        # Collect results as they complete with optional progress bar
+        pbar = tqdm(total=len(tasks), desc="评测进度", unit="req") if show_progress else None
+        try:
+            for future in as_completed(future_to_task):
+                result = future.result()
+                results[result.index] = result  # Place result at correct index
+                if pbar is not None:
+                    pbar.update(1)
+        finally:
+            if pbar is not None:
+                pbar.close()
     
     return results
 
@@ -648,7 +673,7 @@ def evaluate_responses_batch(
         valid_index += 1
     
     # 执行并行评测
-    results = parallel_cached_requests(requests_data, num_workers=num_workers, **api_kwargs)
+    results = parallel_cached_requests(requests_data, num_workers=num_workers, show_progress=True, **api_kwargs)
     
     # 处理结果
     evaluated_results = []
