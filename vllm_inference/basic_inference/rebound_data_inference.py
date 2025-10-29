@@ -26,7 +26,8 @@ def parse_args():
                         help='采样温度（默认：0.1）')
     parser.add_argument('--top_p', type=float, default=0.95,
                         help='Top-p 采样参数（默认：0.95）')
-    parser.add_argument('--max_tokens', type=int, default=32768)
+    parser.add_argument('--max_tokens', type=int, default=1024,
+                        help='最大生成 token 数（可选）')
     return parser.parse_args()
 
 
@@ -110,7 +111,7 @@ def main():
     sampling_params = SamplingParams(**sampling_params_dict)
     print(f"采样参数: {sampling_params_dict}\n")
     
-    with open('/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/chat_template/rebound_template.jinja', "r") as f:
+    with open('/mnt/shared-storage-user/zhoujiayi/jiayi/alpaca-llama-3-1/slice_end/chat_template.jinja', "r") as f:
         chat_template = f.read()
 
     # 生成输出
@@ -126,7 +127,8 @@ def main():
     print("正在处理输出结果...")
     new_data = []
     for output, item in tqdm(zip(outputs, data), total=len(data), desc="处理结果"):
-        prompt = item['prompt']
+        prompt = output.prompt
+        # print(output.outputs)
         generated_text = output.outputs[0].text
         
         item['response'] = generated_text
