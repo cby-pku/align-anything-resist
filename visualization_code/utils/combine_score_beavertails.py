@@ -9,6 +9,7 @@ from typing import Any, Iterable, List, Optional, Tuple
 OUTPUT_ROOT_DIR = "/mnt/shared-storage-user/zhoujiayi/boyuan/rm_score_rebound_combined_csv"
 INPUT_ROOT_DIR = "/mnt/shared-storage-user/zhoujiayi/boyuan/rm_score_rebound/api_score_results_sample_500"
 OUTPUT_SUBDIR = "beavertails_sample_500"
+VERBOSE = True
 
 
 def _parse_count_token(token: str) -> Optional[int]:
@@ -83,10 +84,39 @@ def average_score_from_json_file(path: Path) -> Optional[float]:
     try:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    except Exception:
-        return None
+    except Exception as e:
+        # 可能是实际为 JSONL，但扩展名为 .json 的情况，尝试按 JSONL 解析
+        if VERBOSE:
+            print(f"读取 JSON 失败，尝试按 JSONL 解析: {path}，错误: {e}")
+        return average_score_from_jsonl_file(path)
 
     scores = extract_all_scores(data)
+    if not scores:
+        return None
+    return sum(scores) / len(scores)
+
+
+def average_score_from_jsonl_file(path: Path) -> Optional[float]:
+    """
+    读取 JSONL 文件并计算所有 score 的平均值。无有效分数返回 None。
+    """
+    scores: List[float] = []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                scores.extend(extract_all_scores(obj))
+    except Exception as e:
+        if VERBOSE:
+            print(f"读取 JSONL 失败，跳过: {path}，错误: {e}")
+        return None
+
     if not scores:
         return None
     return sum(scores) / len(scores)
@@ -101,17 +131,30 @@ def process_model_subdir(model_dir: Path, output_dir: Path) -> None:
     - 写出一个 {model}.csv，列: safe_num, unsafe_num, score
     """
     rows: List[Tuple[int, int, float]] = []
-    for file in sorted(model_dir.glob("*.json")):
+    files = list(sorted(model_dir.glob("*.json"))) + list(sorted(model_dir.glob("*.jsonl")))
+    if VERBOSE:
+        print(f"扫描目录: {model_dir}，发现 {len(files)} 个文件")
+    for file in files:
         parsed = parse_safe_unsafe_from_filename(file.name)
         if not parsed:
+            if VERBOSE:
+                print(f"  跳过(命名未匹配 safe/unsafe): {file.name}")
             continue
         safe_num, unsafe_num = parsed
-        avg = average_score_from_json_file(file)
+        avg: Optional[float]
+        if file.suffix == ".jsonl":
+            avg = average_score_from_jsonl_file(file)
+        else:
+            avg = average_score_from_json_file(file)
         if avg is None:
+            if VERBOSE:
+                print(f"  跳过(无有效 score): {file.name}")
             continue
         rows.append((safe_num, unsafe_num, avg))
 
     if not rows:
+        if VERBOSE:
+            print(f"目录 {model_dir.name} 无有效数据，跳过生成 CSV")
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -121,6 +164,8 @@ def process_model_subdir(model_dir: Path, output_dir: Path) -> None:
         writer.writerow(["safe_num", "unsafe_num", "score"])  # header
         for safe_num, unsafe_num, avg in rows:
             writer.writerow([safe_num, unsafe_num, f"{avg:.6f}"])
+    if VERBOSE:
+        print(f"已写出 {len(rows)} 行: {csv_path}")
 
 
 def main() -> None:
@@ -130,8 +175,13 @@ def main() -> None:
         print(f"输入目录不存在或不可用: {input_root}")
         return
 
+    if VERBOSE:
+        print(f"输入根目录: {input_root}")
+        print(f"输出根目录: {out_root}")
     for child in sorted(input_root.iterdir()):
         if child.is_dir():
+            if VERBOSE:
+                print(f"处理子目录: {child.name}")
             process_model_subdir(child, out_root)
 
 

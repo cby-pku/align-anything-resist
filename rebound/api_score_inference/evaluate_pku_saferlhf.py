@@ -703,7 +703,7 @@ def evaluate_responses_batch(
 
 def save_evaluation_results(results: List[Dict[str, Any]], output_path: str):
     """
-    保存评测结果到JSONL文件
+    保存评测结果到 JSON 文件（一次性写入为一个 list 数组）
     
     Args:
         results: 评测结果列表
@@ -714,10 +714,8 @@ def save_evaluation_results(results: List[Dict[str, Any]], output_path: str):
     
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
-            for result in results:
-                json.dump(result, f, ensure_ascii=False)
-                f.write('\n')
-        logger.info(f"成功保存 {len(results)} 条评测结果到 {output_path}")
+            json.dump(results, f, ensure_ascii=False)
+        logger.info(f"成功以 JSON 数组格式保存 {len(results)} 条评测结果到 {output_path}")
     except Exception as e:
         logger.error(f"保存结果到 {output_path} 时出错: {str(e)}")
 

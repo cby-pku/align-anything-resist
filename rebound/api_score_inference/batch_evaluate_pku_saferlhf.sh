@@ -9,7 +9,7 @@ OUTPUT_ROOT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/rm_score_rebound/api_
 # 可配置参数（可通过环境变量覆写）
 MODEL="${MODEL:-gpt-4o}"
 NUM_WORKERS="${NUM_WORKERS:-50}"
-MAX_ITEMS_PER_FILE="${MAX_ITEMS_PER_FILE:-}"
+MAX_ITEMS_PER_FILE="${MAX_ITEMS_PER_FILE:-500}"
 
 # API 配置（可选，通过环境变量传入）
 export API_KEY=sk-UlMdWKVhtMad7nHrRENi7tnvwbCYNXf5Mk9qiTF1dWJvTLcx
@@ -31,7 +31,7 @@ fi
 echo "[INFO] Base file: ${BASE_FILE}"
 echo "[INFO] Source dir: ${SOURCE_DIR}"
 echo "[INFO] Output root: ${OUTPUT_ROOT_DIR}"
-echo "[INFO] Model: ${MODEL} | Workers: ${NUM_WORKERS}"
+echo "[INFO] Model: ${MODEL} | Workers: ${NUM_WORKERS} | Max per file: ${MAX_ITEMS_PER_FILE}"
 
 "${PYTHON_BIN}" "${SCRIPT_DIR}/evaluate_pku_saferlhf.py" \
   --base_file "${BASE_FILE}" \
