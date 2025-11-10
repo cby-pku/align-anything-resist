@@ -25,17 +25,40 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 # 控制步数，延长到2倍的步
 postive_list=("1000" "2000" "5000" "10000" "20000")
 negative_list=("100" "200" "500" "1000" "2000")
 
+# MODEL_LIST=(
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-1.4b"
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-1b"
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-2.8b"
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-410m"
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-6.9b"
+#     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-12b"
+#     "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-0425-1B"
+#     "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-1124-13B"
+#     "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-1124-7B"
+# )
+
+# MODEL_LIST=(
+#     "/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-0.5B"
+#     "/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-7B"
+#     "/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-14B"
+#     "/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-1195k-token-2.5T"
+#     "/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-480k-1T"
+#     "/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-955k-token-2T"
+#     "/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-1431k-3T"
+#     "/mnt/shared-storage-user/zhoujiayi/models/tinyllama/TinyLlama-1.1B-intermediate-step-715k-1.5T"
+
+# )
+
+# TEST MODEL LIST 
+
 MODEL_LIST=(
-    "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-1.4b"
-    "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-1b"
-    "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-2.8b"
-    "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-410m"
-    "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-6.9b"
+    "/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-0.5B"
+    "/mnt/shared-storage-user/zhoujiayi/models/qwen/Qwen1.5-7B"
+    "/mnt/shared-storage-user/zhoujiayi/models/llama/Llama-3.1-8B"
     "/mnt/shared-storage-user/zhoujiayi/models/pythia/pythia-12b"
     "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-0425-1B"
-    "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-1124-13B"
-    "/mnt/shared-storage-user/zhoujiayi/models/allenai/OLMo-2-1124-7B"
 )
+
 for MODEL_NAME_OR_PATH in "${MODEL_LIST[@]}"; do
     MODEL_NAME=$(basename "${MODEL_NAME_OR_PATH}")
 
