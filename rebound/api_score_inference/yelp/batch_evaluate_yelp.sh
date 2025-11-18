@@ -4,7 +4,7 @@ set -euo pipefail
 # 配置路径（可通过环境变量覆写）
 BASE_FILE=/mnt/shared-storage-user/zhoujiayi/boyuan/datasets/preference_datasets/yelp/test_baseline.json
 SOURCE_DIR=/mnt/shared-storage-user/zhoujiayi/boyuan/data_results/rebound/yelp
-OUTPUT_ROOT_DIR=/mnt/shared-storage-user/zhoujiayi/boyuan/rm_score_rebound/api_score_results
+OUTPUT_ROOT_DIR=/mnt/shared-storage-user/zhoujiayi/boyuan/rm_score_rebound/api_score_results/yelp
 
 # 可配置参数（可通过环境变量覆写）
 MODEL="${MODEL:-gpt-4o}"
