@@ -341,6 +341,12 @@ def main():
         default='sft',
         help='Name of the config file to use (e.g., sft, sft_resist, sft_main_process)',
     )
+    parser.add_argument(
+        '--local_rank',
+        type=int,
+        default=-1,
+        help='Local rank for distributed training',
+    )
     args, unknown_args = parser.parse_known_args()
 
     # read default configs from the yaml file
@@ -356,6 +362,11 @@ def main():
             idx += 1
             continue
         if not token.startswith('--'):
+            idx += 1
+            continue
+        if '=' in token:
+            key, value = token[2:].split('=', 1)
+            override_args[key] = value
             idx += 1
             continue
         key = token[2:]
