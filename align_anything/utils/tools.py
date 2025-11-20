@@ -367,7 +367,8 @@ def custom_cfgs_to_dict(key_list: str, value: Any) -> dict[str, Any]:
         value = list(filter(None, value))
     else:
         value = str(value)
-    keys_split = key_list.replace('-', '_').split(':')
+    normalized_keys = key_list.replace('-', '_').replace('.', ':')
+    keys_split = [key for key in normalized_keys.split(':') if key]
     return_dict = {keys_split[-1]: value}
 
     for key in reversed(keys_split[:-1]):
