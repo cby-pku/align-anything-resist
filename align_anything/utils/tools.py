@@ -329,11 +329,19 @@ def prepare_ds_eval_cfgs(custom_cfgs: NamedTuple, raw_ds_cfgs: dict[str, Any]) -
 
 
 def update_dict(total_dict: dict[str, Any], item_dict: dict[str, Any]) -> dict[str, Any]:
-    for key, value in item_dict.items():
-        if key in total_dict and isinstance(total_dict[key], dict) and isinstance(value, dict):
-            update_dict(total_dict[key], value)
-        else:
-            total_dict[key] = value
+    for key in list(total_dict.keys()):
+        current_val = total_dict[key]
+
+        if key in item_dict:
+            if isinstance(current_val, dict) and isinstance(item_dict[key], dict):
+                update_dict(current_val, item_dict[key])
+            else:
+                total_dict[key] = item_dict[key]
+                current_val = total_dict[key]
+
+        if isinstance(current_val, dict):
+            update_dict(current_val, item_dict)
+
     return total_dict
 
 
