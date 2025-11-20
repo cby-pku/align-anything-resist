@@ -329,15 +329,12 @@ def prepare_ds_eval_cfgs(custom_cfgs: NamedTuple, raw_ds_cfgs: dict[str, Any]) -
 
 
 def update_dict(total_dict: dict[str, Any], item_dict: dict[str, Any]) -> dict[str, Any]:
-    def update_dict(total_dict: dict[str, Any], item_dict: dict[str, Any]) -> dict[str, Any]:
-        for key, value in total_dict.items():
-            if key in item_dict:
-                total_dict[key] = item_dict[key]
-            if isinstance(value, dict):
-                update_dict(value, item_dict)
-        return total_dict
-
-    return update_dict(total_dict, item_dict)
+    for key, value in item_dict.items():
+        if key in total_dict and isinstance(total_dict[key], dict) and isinstance(value, dict):
+            update_dict(total_dict[key], value)
+        else:
+            total_dict[key] = value
+    return total_dict
 
 
 def is_convertible_to_float(s: str) -> bool:
