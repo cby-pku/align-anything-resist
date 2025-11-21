@@ -20,6 +20,7 @@ import os
 import sys
 from typing import Any, List
 
+import datetime
 import deepspeed
 import torch
 import torch.distributed as dist
@@ -329,7 +330,8 @@ class SupervisedTrainer(SupervisedTrainerBase):
 
 def main():
     # setup distribution training
-    deepspeed.init_distributed()
+    # Increase timeout to 5 hours to prevent timeout during PALOMA evaluation on main process
+    deepspeed.init_distributed(timeout=datetime.timedelta(minutes=300))
     current_device = get_current_device()
     torch_set_device(current_device)
 

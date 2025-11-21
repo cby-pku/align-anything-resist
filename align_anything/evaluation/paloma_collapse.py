@@ -8,6 +8,7 @@ import json
 import math
 import os
 import shutil
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -170,7 +171,8 @@ class PalomaCollapseEvaluator:
 
         task_metrics: dict[str, dict[str, Any]] = {}
         tasks = self.cfg.resolved_tasks
-        task_iter = tqdm(tasks, desc="[PALOMA] Tasks", disable=None) # disable=None lets tqdm decide (e.g. based on terminal)
+        # Use sys.stdout explicitly and force disable=None to respect environment
+        task_iter = tqdm(tasks, desc="[PALOMA] Tasks", file=sys.stdout) 
         
         for task_name in task_iter:
             task_iter.set_description(f"[PALOMA] Task: {task_name}")
@@ -233,7 +235,8 @@ class PalomaCollapseEvaluator:
         per_domain: dict[str, dict[str, float]] = {}
         limit = self.cfg.limit_per_task
 
-        pbar = tqdm(total=limit, desc=f"  Eval {task_name}", unit="doc", leave=False)
+        # Use sys.stdout and set position to avoid conflict with training bars if any
+        pbar = tqdm(total=limit, desc=f"  Eval {task_name}", unit="doc", leave=False, file=sys.stdout)
         
         for text, meta in self._iter_task_documents(task_dir):
             if limit is not None and doc_count >= limit:
