@@ -15,6 +15,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Tuple
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from tqdm import tqdm
 
 DEFAULT_PALOMA_TASKS: tuple[str, ...] = (
     'm2d2_s2orc_unsplit',
@@ -168,7 +169,11 @@ class PalomaCollapseEvaluator:
         truncate_tokens = self.cfg.truncate_tokens
 
         task_metrics: dict[str, dict[str, Any]] = {}
-        for task_name in self.cfg.resolved_tasks:
+        tasks = self.cfg.resolved_tasks
+        task_iter = tqdm(tasks, desc="[PALOMA] Tasks", disable=None) # disable=None lets tqdm decide (e.g. based on terminal)
+        
+        for task_name in task_iter:
+            task_iter.set_description(f"[PALOMA] Task: {task_name}")
             metrics = self._evaluate_single_task(
                 task_name=task_name,
                 data_root=data_root,
@@ -228,6 +233,8 @@ class PalomaCollapseEvaluator:
         per_domain: dict[str, dict[str, float]] = {}
         limit = self.cfg.limit_per_task
 
+        pbar = tqdm(total=limit, desc=f"  Eval {task_name}", unit="doc", leave=False)
+        
         for text, meta in self._iter_task_documents(task_dir):
             if limit is not None and doc_count >= limit:
                 break
@@ -248,6 +255,13 @@ class PalomaCollapseEvaluator:
                 domain_stat = per_domain.setdefault(domain, {'loss': 0.0, 'tokens': 0})
                 domain_stat['loss'] += loss_sum
                 domain_stat['tokens'] += token_count
+
+            pbar.update(1)
+            if total_tokens > 0:
+                current_ppl = math.exp(total_loss / total_tokens)
+                pbar.set_postfix(ppl=f"{current_ppl:.2f}")
+        
+        pbar.close()
 
         avg_nll = (total_loss / total_tokens) if total_tokens > 0 else None
         perplexity = math.exp(avg_nll) if avg_nll is not None else None
@@ -386,5 +400,5 @@ class PalomaCollapseEvaluator:
         if self.logger is not None and hasattr(self.logger, 'print'):
             self.logger.print(message)
         else:
-            print(message)
+            tqdm.write(message)
 
