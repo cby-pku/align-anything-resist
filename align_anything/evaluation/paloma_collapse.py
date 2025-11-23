@@ -73,18 +73,20 @@ class PalomaCollapseConfig:
         raw_steps = _ensure_list(kwargs.get('steps'))
         if raw_steps is not None:
             kwargs['steps'] = [int(step) for step in raw_steps]
-        limit_val = kwargs.get('limit_per_task')
-        if isinstance(limit_val, str) and limit_val.isdigit():
-            kwargs['limit_per_task'] = int(limit_val)
-        truncate_val = kwargs.get('truncate_tokens')
-        if isinstance(truncate_val, str) and truncate_val.isdigit():
-            kwargs['truncate_tokens'] = int(truncate_val)
-        context_val = kwargs.get('context_window')
-        if isinstance(context_val, str) and context_val.isdigit():
-            kwargs['context_window'] = int(context_val)
-        model_len = kwargs.get('model_max_length')
-        if isinstance(model_len, str) and model_len.isdigit():
-            kwargs['model_max_length'] = int(model_len)
+        
+        # Helper to safely parse int fields
+        def _safe_int(val: Any) -> int | None:
+            if isinstance(val, int):
+                return val
+            if isinstance(val, str) and val.isdigit():
+                return int(val)
+            return None
+
+        kwargs['limit_per_task'] = _safe_int(kwargs.get('limit_per_task'))
+        kwargs['truncate_tokens'] = _safe_int(kwargs.get('truncate_tokens'))
+        kwargs['context_window'] = _safe_int(kwargs.get('context_window'))
+        kwargs['model_max_length'] = _safe_int(kwargs.get('model_max_length'))
+        
         return cls(**kwargs)
 
     @property
@@ -234,9 +236,12 @@ class PalomaCollapseEvaluator:
         doc_count = 0
         per_domain: dict[str, dict[str, float]] = {}
         limit = self.cfg.limit_per_task
+        if not isinstance(limit, int):
+            limit = None
 
         # Use sys.stdout and set position to avoid conflict with training bars if any
-        pbar = tqdm(total=limit, desc=f"  Eval {task_name}", unit="doc", leave=False, file=sys.stdout)
+        pbar_total = limit if limit else None
+        pbar = tqdm(total=pbar_total, desc=f"  Eval {task_name}", unit="doc", leave=False, file=sys.stdout)
         
         for text, meta in self._iter_task_documents(task_dir):
             if limit is not None and doc_count >= limit:
