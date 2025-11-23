@@ -179,7 +179,7 @@ class SupervisedTrainer(SupervisedTrainerBase):
         if self.cfgs.data_cfgs.eval_datasets:
             self.logger.log(self.eval(), step=0)
         if self.collapse_eval_at_start and self.collapse_eval_cfg and self.collapse_eval_cfg.enabled:
-            self._run_collapse_eval(step=0)
+            self._run_collapse_eval(step=0, parent_pbar=progress_bar)
 
         remain_epoch = self.cfgs.train_cfgs.epochs - (
             self.global_step // len(self.train_dataloader)
@@ -229,7 +229,7 @@ class SupervisedTrainer(SupervisedTrainerBase):
                     self.logger.log(self.eval(), step=self.global_step)
 
                 if self._should_run_collapse_eval(self.global_step):
-                    self._run_collapse_eval(step=self.global_step)
+                    self._run_collapse_eval(step=self.global_step, parent_pbar=progress_bar)
 
             if self.cfgs.data_cfgs.eval_datasets and self.cfgs.train_cfgs.eval_strategy == 'epoch':
                 self.logger.print(
@@ -286,7 +286,7 @@ class SupervisedTrainer(SupervisedTrainerBase):
             and step in self.collapse_eval_steps
         )
 
-    def _run_collapse_eval(self, step: int) -> None:
+    def _run_collapse_eval(self, step: int, parent_pbar: tqdm | None = None) -> None:
         if not self.collapse_eval_cfg or not self.collapse_eval_cfg.enabled:
             return
 
@@ -295,6 +295,8 @@ class SupervisedTrainer(SupervisedTrainerBase):
             self.logger.print(
                 f'\n***** Running PALOMA collapse evaluation at step {step} *****'
             )
+            if parent_pbar is not None:
+                parent_pbar.clear() # temporarily clear the training progress bar
 
         self.save_transformers(model=self.model, tag=tag)
         checkpoint_dir = os.path.join(
@@ -311,6 +313,8 @@ class SupervisedTrainer(SupervisedTrainerBase):
                 )
             finally:
                 cleanup_flag = True
+                if parent_pbar is not None:
+                    parent_pbar.refresh() # restore the training progress bar
 
         dist.barrier()
 
