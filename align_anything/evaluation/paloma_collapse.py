@@ -144,6 +144,12 @@ class PalomaCollapseEvaluator:
             / f'step_{step:06d}'
         )
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Use a file for logging progress instead of stdout
+        progress_log_path = output_dir / 'eval_progress.txt'
+        with open(progress_log_path, 'w', encoding='utf-8') as f:
+            f.write(f"Starting evaluation at step {step}\n")
+            f.flush()
 
         self._log(
             f'[PALOMA] Evaluating checkpoint at step {step} '
@@ -178,6 +184,9 @@ class PalomaCollapseEvaluator:
         
         for task_name in task_iter:
             task_iter.set_description(f"[PALOMA] Task: {task_name}")
+            if progress_log_path:
+                with open(progress_log_path, 'a', encoding='utf-8') as f:
+                     f.write(f"Starting Task: {task_name}\n")
             metrics = self._evaluate_single_task(
                 task_name=task_name,
                 data_root=data_root,
@@ -185,6 +194,7 @@ class PalomaCollapseEvaluator:
                 tokenizer=tokenizer,
                 chunk_size=chunk_size,
                 truncate_tokens=truncate_tokens,
+                progress_log_path=progress_log_path,
             )
             task_metrics[task_name] = metrics
 
@@ -226,6 +236,7 @@ class PalomaCollapseEvaluator:
         tokenizer: AutoTokenizer,
         chunk_size: int,
         truncate_tokens: int | None,
+        progress_log_path: Path | None = None,
     ) -> dict[str, Any]:
         task_dir = data_root / task_name / (self.cfg.split or 'val')
         if not task_dir.exists():
@@ -239,9 +250,10 @@ class PalomaCollapseEvaluator:
         if not isinstance(limit, int):
             limit = None
 
-        # Use sys.stdout and set position to avoid conflict with training bars if any
-        pbar_total = limit if limit else None
-        pbar = tqdm(total=pbar_total, desc=f"  Eval {task_name}", unit="doc", leave=False, file=sys.stdout)
+        # Log task start
+        if progress_log_path:
+            with open(progress_log_path, 'a', encoding='utf-8') as f:
+                f.write(f"\n[Task: {task_name}]\n")
         
         for text, meta in self._iter_task_documents(task_dir):
             if limit is not None and doc_count >= limit:
@@ -264,15 +276,19 @@ class PalomaCollapseEvaluator:
                 domain_stat['loss'] += loss_sum
                 domain_stat['tokens'] += token_count
 
-            pbar.update(1)
-            if total_tokens > 0:
-                current_ppl = math.exp(total_loss / total_tokens)
-                pbar.set_postfix(ppl=f"{current_ppl:.2f}")
-        
-        pbar.close()
+            # Log progress periodically (e.g. every 10 docs or 10% if limit is small)
+            if progress_log_path and (doc_count % 10 == 0):
+                current_ppl = math.exp(total_loss / total_tokens) if total_tokens > 0 else float('inf')
+                with open(progress_log_path, 'a', encoding='utf-8') as f:
+                    f.write(f"  Processed {doc_count} docs. Current PPL: {current_ppl:.4f}\n")
 
         avg_nll = (total_loss / total_tokens) if total_tokens > 0 else None
         perplexity = math.exp(avg_nll) if avg_nll is not None else None
+        
+        # Log task completion
+        if progress_log_path:
+            with open(progress_log_path, 'a', encoding='utf-8') as f:
+                f.write(f"[Task: {task_name}] Finished. Docs: {doc_count}, Tokens: {total_tokens}, PPL: {perplexity}\n")
         domain_metrics = {
             domain: {
                 'avg_nll': stats['loss'] / stats['tokens'],
