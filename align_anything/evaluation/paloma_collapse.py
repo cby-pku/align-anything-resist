@@ -187,6 +187,22 @@ class PalomaCollapseEvaluator:
             # We will initialize vLLM engine here
             # Use trust_remote_code from config
             dtype = self.cfg.dtype if self.cfg.dtype else "auto"
+            
+            # Fix for vLLM dtype validation error
+            # vLLM expects full names: 'float16', 'bfloat16', 'float32'
+            # But our config might use 'bf16', 'fp16', 'fp32'
+            dtype_map = {
+                'bf16': 'bfloat16',
+                'fp16': 'float16', 
+                'fp32': 'float32',
+                'float16': 'float16',
+                'bfloat16': 'bfloat16',
+                'float32': 'float32',
+                'auto': 'auto'
+            }
+            if dtype in dtype_map:
+                dtype = dtype_map[dtype]
+
             try:
                 model = LLM(
                     model=str(checkpoint_path),
