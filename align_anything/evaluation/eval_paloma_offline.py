@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument("--dtype", type=str, default="bf16", help="Data type (bf16, fp16, fp32)")
     parser.add_argument("--device", type=str, default="cuda", help="Device to use (cuda, cpu)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--use_vllm", action="store_true", help="Use vLLM for acceleration")
     return parser.parse_args()
 
 def main():
@@ -35,10 +36,12 @@ def main():
         context_window=args.context_window,
         model_max_length=args.model_max_length,
         dtype=args.dtype,
+        use_vllm=args.use_vllm,
     )
 
     # Ensure output directory exists
     os.makedirs(args.output_dir, exist_ok=True)
+
     
     print(f"Initialize Evaluator with model: {args.model_path}")
     print(f"Data Root: {args.data_root}")

@@ -19,6 +19,7 @@ python align_anything/evaluation/eval_paloma_offline.py \
     --model_path "${MODEL_PATH}" \
     --data_root "${DATA_ROOT}" \
     --output_dir "${OUTPUT_DIR}" \
+    --use_vllm True \
     "$@"
 
 

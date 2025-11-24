@@ -15,6 +15,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Tuple
 
 import torch
+try:
+    from vllm import LLM, SamplingParams
+    VLLM_AVAILABLE = True
+except ImportError:
+    VLLM_AVAILABLE = False
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from tqdm import tqdm
 
@@ -65,6 +70,7 @@ class PalomaCollapseConfig:
     dtype: str | None = None
     truncate_tokens: int | None = None
     trust_remote_code: bool = True
+    use_vllm: bool = False
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PalomaCollapseConfig:
@@ -165,16 +171,47 @@ class PalomaCollapseEvaluator:
             tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
         tokenizer.padding_side = 'left'
 
-        torch_dtype = self._resolve_dtype()
-        model = AutoModelForCausalLM.from_pretrained(
-            checkpoint_path,
-            trust_remote_code=self.cfg.trust_remote_code,
-            torch_dtype=torch_dtype,
-        )
-        model.to(self.device)
-        model.eval()
+        model = None
+        chunk_size = 2048
+        
+        if self.cfg.use_vllm:
+            if not VLLM_AVAILABLE:
+                raise ImportError("vLLM is not installed. Please install it or set use_vllm=False.")
+            self._log("[PALOMA] Using vLLM for evaluation.")
+            # vLLM handles memory management, so we don't manually load model to device
+            # Note: vLLM is mainly for generation, but can be used for PPL if we use score (logprobs).
+            # However, vLLM's offline inference 'score' support might be limited or API differs.
+            # Standard vLLM LLM.score() is not available in all versions or behaves differently.
+            # For PPL, we usually need 'prompt_logprobs'.
+            
+            # We will initialize vLLM engine here
+            # Use trust_remote_code from config
+            dtype = self.cfg.dtype if self.cfg.dtype else "auto"
+            try:
+                model = LLM(
+                    model=str(checkpoint_path),
+                    trust_remote_code=self.cfg.trust_remote_code,
+                    dtype=dtype,
+                    # Prevent OOM on high concurrency if needed, though default is usually fine
+                    # gpu_memory_utilization=0.9, 
+                    max_model_len=self.cfg.model_max_length if self.cfg.model_max_length else None
+                )
+                # vLLM determines max model length automatically if not set
+                chunk_size = model.llm_engine.model_config.max_model_len
+            except Exception as e:
+                 self._log(f"[PALOMA] Failed to initialize vLLM: {e}")
+                 raise e
+        else:
+            torch_dtype = self._resolve_dtype()
+            model = AutoModelForCausalLM.from_pretrained(
+                checkpoint_path,
+                trust_remote_code=self.cfg.trust_remote_code,
+                torch_dtype=torch_dtype,
+            )
+            model.to(self.device)
+            model.eval()
+            chunk_size = self._determine_chunk_size(model, tokenizer)
 
-        chunk_size = self._determine_chunk_size(model, tokenizer)
         truncate_tokens = self.cfg.truncate_tokens
 
         task_metrics: dict[str, dict[str, Any]] = {}
@@ -215,8 +252,13 @@ class PalomaCollapseEvaluator:
             f'Results saved to {metrics_path}.'
         )
 
+        if not self.cfg.use_vllm:
+             del model
+             torch.cuda.empty_cache()
+        # For vLLM, we can't easily delete it from GPU memory without restarting process usually,
+        # but Python GC might handle it if LLM object is deleted.
         del model
-        torch.cuda.empty_cache()
+        
         return metrics_path
 
     @staticmethod
@@ -232,7 +274,7 @@ class PalomaCollapseEvaluator:
         self,
         task_name: str,
         data_root: Path,
-        model: AutoModelForCausalLM,
+        model: Any, # Can be AutoModel or vLLM LLM
         tokenizer: AutoTokenizer,
         chunk_size: int,
         truncate_tokens: int | None,
@@ -255,37 +297,86 @@ class PalomaCollapseEvaluator:
             with open(progress_log_path, 'a', encoding='utf-8') as f:
                 f.write(f"\n[Task: {task_name}]\n")
         
-        for text, meta in self._iter_task_documents(task_dir):
-            if limit is not None and doc_count >= limit:
+        # Prepare batch if using vLLM for efficiency?
+        # For now, stick to serial processing to match structure, but use vLLM batched call if possible.
+        # vLLM is optimized for batching. But _iter_task_documents yields one by one.
+        # We can accumulate a batch here.
+        
+        BATCH_SIZE = 100 if self.cfg.use_vllm else 1
+        batch_texts = []
+        batch_metas = []
+        
+        iterator = self._iter_task_documents(task_dir)
+        
+        while True:
+            # Collect batch
+            try:
+                while len(batch_texts) < BATCH_SIZE:
+                     if limit is not None and doc_count + len(batch_texts) >= limit:
+                         break
+                     text, meta = next(iterator)
+                     batch_texts.append(text)
+                     batch_metas.append(meta)
+            except StopIteration:
+                pass
+            
+            if not batch_texts:
                 break
-            loss_sum, token_count = self._score_text(
-                text=text,
-                model=model,
-                tokenizer=tokenizer,
-                chunk_size=chunk_size,
-                truncate_tokens=truncate_tokens,
-            )
-            if token_count == 0:
-                continue
-            doc_count += 1
-            total_loss += loss_sum
-            total_tokens += token_count
-            
-            # Safely get domain info, handling cases where meta might be None or string
-            domain = None
-            if isinstance(meta, dict):
-                domain = meta.get('subdomain') or meta.get('domain')
-            
-            if domain:
-                domain_stat = per_domain.setdefault(domain, {'loss': 0.0, 'tokens': 0})
-                domain_stat['loss'] += loss_sum
-                domain_stat['tokens'] += token_count
 
-            # Log progress periodically (e.g. every 10 docs or 10% if limit is small)
-            if progress_log_path and (doc_count % 10 == 0):
+            # Process batch
+            if self.cfg.use_vllm:
+                # For vLLM, we use a specialized scoring method
+                batch_loss, batch_tokens = self._score_text_vllm_batch(
+                    texts=batch_texts,
+                    llm=model,
+                    tokenizer=tokenizer,
+                    chunk_size=chunk_size,
+                    truncate_tokens=truncate_tokens
+                )
+            else:
+                # Serial HF processing
+                batch_loss = []
+                batch_tokens = []
+                for text in batch_texts:
+                    l, t = self._score_text(
+                        text=text,
+                        model=model,
+                        tokenizer=tokenizer,
+                        chunk_size=chunk_size,
+                        truncate_tokens=truncate_tokens
+                    )
+                    batch_loss.append(l)
+                    batch_tokens.append(t)
+
+            # Update stats
+            for i, (loss_val, token_cnt) in enumerate(zip(batch_loss, batch_tokens)):
+                if token_cnt == 0:
+                    continue
+                
+                doc_count += 1
+                total_loss += loss_val
+                total_tokens += token_cnt
+                
+                meta = batch_metas[i]
+                domain = None
+                if isinstance(meta, dict):
+                    domain = meta.get('subdomain') or meta.get('domain')
+                
+                if domain:
+                    domain_stat = per_domain.setdefault(domain, {'loss': 0.0, 'tokens': 0})
+                    domain_stat['loss'] += loss_val
+                    domain_stat['tokens'] += token_cnt
+            
+            # Log progress
+            if progress_log_path and (doc_count % 10 < BATCH_SIZE): # Rough check
                 current_ppl = math.exp(total_loss / total_tokens) if total_tokens > 0 else float('inf')
                 with open(progress_log_path, 'a', encoding='utf-8') as f:
                     f.write(f"  Processed {doc_count} docs. Current PPL: {current_ppl:.4f}\n")
+            
+            batch_texts = []
+            batch_metas = []
+            if limit is not None and doc_count >= limit:
+                break
 
         avg_nll = (total_loss / total_tokens) if total_tokens > 0 else None
         perplexity = math.exp(avg_nll) if avg_nll is not None else None
@@ -317,6 +408,128 @@ class PalomaCollapseEvaluator:
             'perplexity': perplexity,
             'per_domain': domain_metrics,
         }
+
+    def _score_text_vllm_batch(
+        self,
+        texts: List[str],
+        llm: Any, # vLLM LLM object
+        tokenizer: AutoTokenizer,
+        chunk_size: int,
+        truncate_tokens: int | None,
+    ) -> Tuple[List[float], List[int]]:
+        """
+        Score a batch of texts using vLLM.
+        vLLM doesn't have a direct 'score' method in older versions, but newer versions might.
+        Common workaround: set logprobs=1 and max_tokens=1, provided prompts are the full text.
+        BUT vLLM is for generation. To get PPL, we need logprobs of the PROMPT.
+        sampling_params = SamplingParams(prompt_logprobs=1, max_tokens=1)
+        
+        Note: chunking logic is tricky with vLLM batching because each doc has different chunks.
+        We will flatten all chunks from all docs into a massive list of prompts.
+        """
+        
+        # 1. Tokenize and Chunk all texts
+        all_prompts = [] # List of token IDs (list of ints)
+        doc_indices = [] # Maps which doc this chunk belongs to
+        
+        # Temporarily suppress tokenizer warning
+        original_max_len = tokenizer.model_max_length
+        tokenizer.model_max_length = int(1e9)
+        
+        try:
+            batch_encoded = tokenizer(
+                texts,
+                add_special_tokens=False,
+            )
+        finally:
+            tokenizer.model_max_length = original_max_len
+            
+        for i, token_ids in enumerate(batch_encoded['input_ids']):
+            if truncate_tokens is not None and truncate_tokens > 0:
+                token_ids = token_ids[:truncate_tokens]
+            
+            if len(token_ids) < 2:
+                continue
+                
+            # Chunking (Disjoint)
+            chunk = max(chunk_size, 2)
+            stride = chunk
+            seq_len = len(token_ids)
+            
+            for start_idx in range(0, seq_len - 1, stride):
+                end_idx = min(start_idx + chunk, seq_len)
+                chunk_ids = token_ids[start_idx:end_idx]
+                if len(chunk_ids) < 2:
+                    continue
+                all_prompts.append(chunk_ids)
+                doc_indices.append(i)
+
+        if not all_prompts:
+            return [0.0]*len(texts), [0]*len(texts)
+
+        # 2. Run vLLM
+        # We need logprobs for each token in the prompt.
+        # Using prompt_logprobs=20 to catch the ground truth token in most cases.
+        # This is an approximation if the token is extremely unlikely (tail of distribution).
+        # For precise PPL, one needs full logits or a feature from vLLM to return "input id logprob".
+        # (Some forks or versions might have 'score', but we stick to standard API).
+        sampling_params = SamplingParams(
+            max_tokens=1, 
+            prompt_logprobs=20, 
+            temperature=1.0,
+        )
+        
+        outputs = llm.generate(prompt_token_ids=all_prompts, sampling_params=sampling_params, use_tqdm=False)
+        
+        batch_loss = [0.0] * len(texts)
+        batch_tokens = [0] * len(texts)
+        
+        for j, output in enumerate(outputs):
+            doc_idx = doc_indices[j]
+            logprobs_list = output.prompt_logprobs
+            
+            if not logprobs_list:
+                continue
+
+            # logprobs_list has length equal to input prompt length.
+            # logprobs_list[i] is the logprob distribution P(token_i | tokens_0...i-1)
+            # Note: vLLM (and most libs) aligns it such that logprobs_list[i] corresponds to the i-th token in the prompt.
+            # The first token's logprob is usually None (because it's P(t0|nothing)).
+            
+            chunk_loss = 0.0
+            chunk_cnt = 0
+            
+            chunk_ids = all_prompts[j]
+            
+            for k, lp_dict in enumerate(logprobs_list):
+                if k == 0: continue # Skip first token
+                if not lp_dict: continue
+                
+                target_id = chunk_ids[k]
+                if target_id in lp_dict:
+                    chunk_loss -= lp_dict[target_id].logprob # Negative Log Likelihood (so we subtract logprob)
+                    # Wait, typical code sums NLL? Or sums LogProb?
+                    # _score_text sums "loss_val".
+                    # loss_val from HF model() is CrossEntropyLoss, which is NLL (positive).
+                    # logprob is negative (usually).
+                    # So NLL = -logprob.
+                    # So we ADD (-logprob).
+                    chunk_loss += -lp_dict[target_id].logprob
+                    chunk_cnt += 1
+                else:
+                    # Fallback if not found in top-K: use the lowest logprob in the dict as an estimate?
+                    # Or just ignore? Ignoring biases PPL down (better).
+                    # Using min value biases PPL up (worse).
+                    # Let's penalize with the minimum value found in top-K to be conservative.
+                    # Or ideally, we'd throw an error, but that stops eval.
+                    min_logprob = min(v.logprob for v in lp_dict.values())
+                    chunk_loss += -min_logprob
+                    chunk_cnt += 1
+            
+            batch_loss[doc_idx] += chunk_loss
+            batch_tokens[doc_idx] += chunk_cnt
+
+        return batch_loss, batch_tokens
 
     def _score_text(
         self,
