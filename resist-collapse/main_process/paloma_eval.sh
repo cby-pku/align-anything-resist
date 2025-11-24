@@ -8,22 +8,23 @@
 #     exit 1
 # fi
 
-MODEL_PATH="/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/1120_test_collapse_eval/safe_llama3.1-8b/slice_collapse_tmp_582"
-DATA_ROOT="/mnt/shared-storage-user/zhoujiayi/boyuan/dataset/paloma"
-OUTPUT_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/1120_test_collapse_eval/safe_llama3.1-8b/slice_collapse_tmp_582"
+export VLLM_USE_V1=0
 
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+SLICE_DIR="/mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/1120_test_collapse_eval/safe_llama3.1-8b"
 
-python /mnt/shared-storage-user/zhoujiayi/boyuan/align-anything-resist/align_anything/evaluation/eval_paloma_offline.py \
-    --model_path "${MODEL_PATH}" \
-    --data_root "${DATA_ROOT}" \
-    --output_dir "${OUTPUT_DIR}" \
-    --use_vllm 
+for SLICE_PATH in "${SLICE_DIR}"/slice_*; do
+    if [ -d "$SLICE_PATH" ] || [ -f "$SLICE_PATH" ]; then
+        MODEL_PATH="$SLICE_PATH"
+        MODEL_SLICE=$(basename "$SLICE_PATH")
+        OUTPUT_DIR="${SLICE_DIR}/paloma_collapse/${MODEL_SLICE}"
 
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
-# bash scripts/paloma_eval.sh \
-#     /mnt/shared-storage-user/zhoujiayi/boyuan/model_results/resist-collapse/1120_test_collapse_eval/safe_llama3.1-8b/slice_collapse_tmp_500 \
-#     /path/to/paloma_data \
-#     ./eval_results \
-#     --limit_per_task 100 \
-#     --dtype bf16
+        python /mnt/shared-storage-user/zhoujiayi/boyuan/align-anything-resist/align_anything/evaluation/eval_paloma_offline.py \
+            --model_path "${MODEL_PATH}" \
+            --data_root "/mnt/shared-storage-user/zhoujiayi/boyuan/dataset/paloma" \
+            --output_dir "${OUTPUT_DIR}" 
+            # --use_vllm 
+    fi
+done
+ 
