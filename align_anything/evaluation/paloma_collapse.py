@@ -270,7 +270,12 @@ class PalomaCollapseEvaluator:
             doc_count += 1
             total_loss += loss_sum
             total_tokens += token_count
-            domain = meta.get('subdomain') or meta.get('domain')
+            
+            # Safely get domain info, handling cases where meta might be None or string
+            domain = None
+            if isinstance(meta, dict):
+                domain = meta.get('subdomain') or meta.get('domain')
+            
             if domain:
                 domain_stat = per_domain.setdefault(domain, {'loss': 0.0, 'tokens': 0})
                 domain_stat['loss'] += loss_sum
@@ -321,11 +326,19 @@ class PalomaCollapseEvaluator:
         chunk_size: int,
         truncate_tokens: int | None,
     ) -> tuple[float, int]:
-        encoded = tokenizer(
-            text,
-            add_special_tokens=False,
-            return_tensors='pt',
-        )
+        # Temporarily suppress tokenizer warning about sequence length
+        # because we handle chunking manually.
+        original_max_len = tokenizer.model_max_length
+        tokenizer.model_max_length = int(1e9)
+        try:
+            encoded = tokenizer(
+                text,
+                add_special_tokens=False,
+                return_tensors='pt',
+            )
+        finally:
+            tokenizer.model_max_length = original_max_len
+
         input_ids = encoded['input_ids'][0]
         if truncate_tokens is not None and truncate_tokens > 0:
             input_ids = input_ids[:truncate_tokens]
@@ -337,14 +350,29 @@ class PalomaCollapseEvaluator:
         total_loss = 0.0
         total_tokens = 0
         seq_len = input_ids.size(1)
-        chunk = max(chunk_size, 2)
+        
+        # If sequence is very long, log a message to indicate progress
+        if seq_len > 20000:
+             self._log(f"  [PALOMA] Processing long document ({seq_len} tokens)...")
 
+        chunk = max(chunk_size, 2)
+        stride = chunk # Default to disjoint windows (stride = chunk) for speed
+        
+        # Use sliding window if stride < chunk, otherwise disjoint
+        
         with torch.inference_mode():
-            for start_idx in range(0, seq_len - 1, chunk):
+            for start_idx in range(0, seq_len - 1, stride):
                 end_idx = min(start_idx + chunk, seq_len)
                 chunk_ids = input_ids[:, start_idx:end_idx]
                 if chunk_ids.size(1) < 2:
                     break
+                
+                # In sliding window (if we were to support it fully with context overlap),
+                # we would need to mask out loss for the overlap.
+                # Here we implement simple disjoint chunking (stride=chunk) as per original code,
+                # but wrapped in a loop that can be extended.
+                # The current implementation matches the 'disjoint' logic.
+                
                 chunk_attention = attention_mask[:, start_idx:end_idx]
                 outputs = model(
                     input_ids=chunk_ids,
