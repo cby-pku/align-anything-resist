@@ -208,8 +208,8 @@ class PalomaCollapseEvaluator:
                     model=str(checkpoint_path),
                     trust_remote_code=self.cfg.trust_remote_code,
                     dtype=dtype,
-                    # Prevent OOM on high concurrency if needed, though default is usually fine
-                    # gpu_memory_utilization=0.9, 
+                    # Limit GPU memory usage to prevent OOM with long contexts
+                    gpu_memory_utilization=0.85, 
                     max_model_len=self.cfg.model_max_length if self.cfg.model_max_length else None
                 )
                 # vLLM determines max model length automatically if not set
@@ -486,16 +486,23 @@ class PalomaCollapseEvaluator:
         # 2. Run vLLM
         # We need logprobs for each token in the prompt.
         # Using prompt_logprobs=20 to catch the ground truth token in most cases.
-        # This is an approximation if the token is extremely unlikely (tail of distribution).
-        # For precise PPL, one needs full logits or a feature from vLLM to return "input id logprob".
-        # (Some forks or versions might have 'score', but we stick to standard API).
         sampling_params = SamplingParams(
             max_tokens=1, 
             prompt_logprobs=20, 
             temperature=1.0,
         )
         
-        outputs = llm.generate(prompt_token_ids=all_prompts, sampling_params=sampling_params, use_tqdm=False)
+        # If all_prompts is huge (e.g. 16M tokens total), passing all at once might OOM in vLLM engine/scheduler
+        # We should batch the submission to vLLM generate as well.
+        
+        # Sub-batching for vLLM submission
+        SUB_BATCH_SIZE = 256 # Number of chunks per vLLM call
+        outputs = []
+        
+        for k in range(0, len(all_prompts), SUB_BATCH_SIZE):
+            sub_prompts = all_prompts[k : k + SUB_BATCH_SIZE]
+            sub_outputs = llm.generate(prompt_token_ids=sub_prompts, sampling_params=sampling_params, use_tqdm=False)
+            outputs.extend(sub_outputs)
         
         batch_loss = [0.0] * len(texts)
         batch_tokens = [0] * len(texts)
