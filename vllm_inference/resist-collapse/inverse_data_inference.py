@@ -57,8 +57,18 @@ def main():
     
     # 读取输入数据
     print(f"正在读取输入文件: {args.input_file}")
+    file_ext = os.path.splitext(args.input_file)[1].lower()
+    data = []
     with open(args.input_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+        if file_ext == ".jsonl":
+            for line in f:
+                line = line.strip()
+                if line:
+                    data.append(json.loads(line))
+        elif file_ext == ".json":
+            data = json.load(f)
+        else:
+            raise ValueError("仅支持 .json 或 .jsonl 格式的输入文件")
     print(f"✓ 成功读取 {len(data)} 条数据\n")
     
     # 初始化模型
